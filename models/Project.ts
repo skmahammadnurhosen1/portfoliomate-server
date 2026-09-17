@@ -18,6 +18,11 @@ export interface IProject extends Document {
   duration?: string;
   rate?: string;
   avatar?: string;
+  clientName?: string;
+  deliverables?: string;
+  designTools?: string[];
+  behanceUrl?: string;
+  dimensions?: string;
   hidden: boolean;
   order: number;
   createdAt: Date;
@@ -100,6 +105,26 @@ const ProjectSchema = new Schema<IProject>(
     },
     avatar: {
       type: String,
+    },
+    clientName: {
+      type: String,
+      trim: true,
+    },
+    deliverables: {
+      type: String,
+      trim: true,
+    },
+    designTools: {
+      type: [String],
+      default: [],
+    },
+    behanceUrl: {
+      type: String,
+      trim: true,
+    },
+    dimensions: {
+      type: String,
+      trim: true,
     },
     hidden: {
       type: Boolean,

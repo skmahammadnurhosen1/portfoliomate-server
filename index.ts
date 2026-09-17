@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 
 import { connectDB } from './config/db.ts';
 import { seedDatabase } from './utils/seed.ts';
+import { UploadedFile } from './models/UploadedFile.ts';
 import { apiLimiter } from './middleware/rateLimiter.ts';
 import { errorHandler } from './middleware/errorHandler.ts';
 
@@ -69,6 +70,22 @@ app.use(cookieParser(process.env.COOKIE_SECRET || 'noor_cookie_secret_key_2026')
 // Static uploads directory for images and custom CV PDFs
 const uploadsDir = path.resolve(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadsDir));
+
+// Fallback for uploads served from MongoDB Atlas (persists across Render restarts)
+app.get('/uploads/:filename', async (req: Request, res: Response, next) => {
+  try {
+    const file = await UploadedFile.findOne({ filename: req.params.filename });
+    if (file && file.data) {
+      res.setHeader('Content-Type', file.mimetype);
+      res.setHeader('Content-Length', file.size.toString());
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      return res.send(file.data);
+    }
+    return res.status(404).json({ success: false, message: 'File not found' });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Apply general API rate limiter to all /api routes
 app.use('/api', apiLimiter);
