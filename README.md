@@ -14,7 +14,6 @@ npm run dev
 ```
 - **Frontend (Client):** http://localhost:3000
 - **Backend (API):** http://localhost:5000/api
-- **Admin Panel:** http://localhost:3000/#/admin/login
 
 ---
 
@@ -31,10 +30,8 @@ npm run dev
 4. Add the following **Environment Variables**:
    - `NODE_ENV`: `production`
    - `PORT`: `5000`
-   - `MONGODB_URI`: `mongodb+srv://skmahammadnurhosen1_db_user:A20tbWPmDhaAstFF@cluster0.t43fvzd.mongodb.net/portfolio?retryWrites=true&w=majority&appName=Cluster0`
-   - `JWT_SECRET`: `noor_portfolio_super_jwt_secret_key_2026_secure`
-   - `ADMIN_EMAIL`: `skmahammadnurhosen1@gmail.com`
-   - `ADMIN_INITIAL_PASSWORD`: `NOORNORAHOSEN`
+   - `MONGODB_URI`: 
+  
 5. Click **Create Web Service**. Note the deployed URL (e.g. `https://your-backend.onrender.com`).
 
 *Note: In MongoDB Atlas -> Network Access -> IP Access List, make sure to allow `0.0.0.0/0` so Render can connect.*
