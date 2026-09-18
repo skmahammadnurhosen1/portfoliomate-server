@@ -7,7 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
-import { connectDB } from './config/db.ts';
+import { connectDB, ensureDbConnected } from './config/db.ts';
 import { seedDatabase } from './utils/seed.ts';
 import { UploadedFile } from './models/UploadedFile.ts';
 import { apiLimiter } from './middleware/rateLimiter.ts';
@@ -59,6 +59,7 @@ app.use(
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Disposition', 'Content-Length', 'Content-Type'],
   })
 );
 
@@ -98,6 +99,14 @@ app.get('/api/health', (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
   });
+});
+
+// Cold-start readiness: Wait up to 10s for database connection if currently connecting
+app.use(async (req: Request, _res: Response, next) => {
+  if (req.path.startsWith('/api')) {
+    await ensureDbConnected(10000);
+  }
+  next();
 });
 
 // Mount REST API Routes

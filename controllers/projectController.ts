@@ -1,18 +1,20 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Project } from '../models/Project.ts';
-import { PROJECTS as DEFAULT_PROJECTS } from '../data/defaultData.ts';
+import { ensureDbConnected } from '../config/db.ts';
 
 // Public: Get all visible projects
 export async function getPublicProjects(_req: Request, res: Response): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
-      const publicDefaults = DEFAULT_PROJECTS.filter((p) => !p.hidden);
+      await ensureDbConnected(8000);
+    }
+
+    if (mongoose.connection.readyState !== 1) {
       res.status(200).json({
         success: true,
-        count: publicDefaults.length,
-        data: publicDefaults,
-        isFallback: true,
+        count: 0,
+        data: [],
       });
       return;
     }
@@ -28,13 +30,11 @@ export async function getPublicProjects(_req: Request, res: Response): Promise<v
     });
   } catch (error) {
     console.error('[Project Controller] Error fetching public projects:', error);
-    // Fallback to default in-memory projects on database error
-    const publicDefaults = DEFAULT_PROJECTS.filter((p) => !p.hidden);
+    // Never fallback to demo projects; return empty array
     res.status(200).json({
       success: true,
-      count: publicDefaults.length,
-      data: publicDefaults,
-      isFallback: true,
+      count: 0,
+      data: [],
     });
   }
 }
@@ -45,12 +45,11 @@ export async function getProjectById(req: Request, res: Response): Promise<void>
     const { id } = req.params;
 
     if (mongoose.connection.readyState !== 1) {
-      const project = DEFAULT_PROJECTS.find((p) => p.id === id);
-      if (!project) {
-        res.status(404).json({ success: false, message: 'Project not found.' });
-        return;
-      }
-      res.status(200).json({ success: true, data: project, isFallback: true });
+      await ensureDbConnected(8000);
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      res.status(503).json({ success: false, message: 'Database connecting. Please retry shortly.' });
       return;
     }
 
@@ -74,11 +73,14 @@ export async function getProjectById(req: Request, res: Response): Promise<void>
 export async function getAdminProjects(_req: Request, res: Response): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(8000);
+    }
+
+    if (mongoose.connection.readyState !== 1) {
       res.status(200).json({
         success: true,
-        count: DEFAULT_PROJECTS.length,
-        data: DEFAULT_PROJECTS,
-        isFallback: true,
+        count: 0,
+        data: [],
       });
       return;
     }
@@ -94,7 +96,7 @@ export async function getAdminProjects(_req: Request, res: Response): Promise<vo
     });
   } catch (error) {
     console.error('[Project Controller] Error fetching admin projects:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch projects.' });
+    res.status(200).json({ success: true, count: 0, data: [] });
   }
 }
 

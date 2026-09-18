@@ -5,17 +5,14 @@ export async function connectDB(): Promise<void> {
 
   try {
     mongoose.set('strictQuery', true);
-    // Disable query buffering so requests don't hang indefinitely when disconnected
-    mongoose.set('bufferCommands', false);
 
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 3000,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 30000,
     });
     console.log(`[Database] MongoDB connected successfully to ${mongoose.connection.host}/${mongoose.connection.name}`);
   } catch (error: any) {
     console.warn(`[Database] Could not connect to MongoDB at "${uri}": ${error.message}`);
-    console.warn('[Database] Running in disconnected/fallback mode. Configure MONGODB_URI in .env to connect to your MongoDB Atlas cluster.');
   }
 
   mongoose.connection.on('disconnected', () => {
@@ -25,4 +22,26 @@ export async function connectDB(): Promise<void> {
   mongoose.connection.on('connected', () => {
     console.log('[Database] MongoDB connection established.');
   });
+}
+
+/**
+ * Ensures MongoDB connection is active.
+ * If connecting (during Render cold start), awaits connection up to timeoutMs.
+ */
+export async function ensureDbConnected(timeoutMs = 12000): Promise<boolean> {
+  if (mongoose.connection.readyState === 1) {
+    return true;
+  }
+
+  // If disconnected, trigger connect
+  if ((mongoose.connection.readyState as number) === 0) {
+    connectDB().catch(() => {});
+  }
+
+  const startTime = Date.now();
+  while ((mongoose.connection.readyState as number) !== 1 && (Date.now() - startTime) < timeoutMs) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  return (mongoose.connection.readyState as number) === 1;
 }

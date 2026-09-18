@@ -3,12 +3,17 @@ import mongoose from 'mongoose';
 import { CV } from '../models/CV.ts';
 import { UploadedFile } from '../models/UploadedFile.ts';
 import { DEFAULT_CV_DATA } from '../data/defaultData.ts';
+import { ensureDbConnected } from '../config/db.ts';
 import fs from 'fs';
 import path from 'path';
 
 // Public: Get CV data
 export async function getCV(_req: Request, res: Response): Promise<void> {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(8000);
+    }
+
     if (mongoose.connection.readyState !== 1) {
       res.status(200).json({
         success: true,
@@ -209,6 +214,10 @@ export async function removeCVPdf(_req: Request, res: Response): Promise<void> {
 // Public: Download custom CV PDF with attachment headers
 export async function downloadCVPdf(_req: Request, res: Response): Promise<void> {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(8000);
+    }
+
     const cv = await CV.findOne().lean();
     if (!cv || !cv.customPdfUrl) {
       res.status(404).json({ success: false, message: 'No CV PDF has been uploaded yet.' });
@@ -216,13 +225,15 @@ export async function downloadCVPdf(_req: Request, res: Response): Promise<void>
     }
 
     const filename = path.basename(cv.customPdfUrl);
-    const downloadFileName = cv.customPdfFileName || 'Nur_Hosen_CV.pdf';
+    const safeFileName = (cv.customPdfFileName || 'Nur_Hosen_CV.pdf').replace(/["\r\n]/g, '');
+
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"; filename*=UTF-8''${encodeURIComponent(safeFileName)}`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
     // Try local disk first
     const diskPath = path.resolve(process.cwd(), 'uploads', filename);
     if (fs.existsSync(diskPath)) {
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(downloadFileName)}"`);
-      res.setHeader('Content-Type', 'application/pdf');
       res.sendFile(diskPath);
       return;
     }
@@ -230,8 +241,6 @@ export async function downloadCVPdf(_req: Request, res: Response): Promise<void>
     // Fallback to MongoDB Atlas UploadedFile
     const uploadedFile = await UploadedFile.findOne({ filename });
     if (uploadedFile && uploadedFile.data) {
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(downloadFileName)}"`);
-      res.setHeader('Content-Type', uploadedFile.mimetype || 'application/pdf');
       res.setHeader('Content-Length', uploadedFile.size.toString());
       res.send(uploadedFile.data);
       return;
