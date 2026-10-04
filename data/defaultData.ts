@@ -314,7 +314,7 @@ export const DEFAULT_CV_DATA = {
     {
       id: 'edu-1',
       degree: 'Bachelor of Science in Information & Digital Media',
-      institution: 'State University',
+      institution: 'Bengal Institutional Technology',
       year: '2021',
     },
   ],

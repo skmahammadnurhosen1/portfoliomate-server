@@ -231,6 +231,15 @@ export async function downloadCVPdf(_req: Request, res: Response): Promise<void>
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
+    // Legacy: PDF stored inline as base64 data URL
+    if (cv.customPdfUrl.startsWith('data:')) {
+      const base64 = cv.customPdfUrl.split(',')[1] || '';
+      const buf = Buffer.from(base64, 'base64');
+      res.setHeader('Content-Length', buf.length.toString());
+      res.send(buf);
+      return;
+    }
+
     // Try local disk first
     const diskPath = path.resolve(process.cwd(), 'uploads', filename);
     if (fs.existsSync(diskPath)) {
