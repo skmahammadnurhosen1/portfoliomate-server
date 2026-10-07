@@ -54,7 +54,19 @@ export async function updateCV(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const updates = req.body;
+    const ALLOWED_CV_FIELDS = [
+      'fullName', 'title', 'summary', 'email', 'phone', 'location', 'website',
+      'statusBadge', 'skills', 'highlights', 'experiences', 'education',
+      'showSummary', 'showSkills', 'showHighlights', 'showExperience',
+      'showEducation', 'showContact', 'customPdfUrl', 'customPdfFileName',
+      'customPdfFileSize', 'customPdfUploadDate'
+    ];
+    const updates: Record<string, any> = {};
+    for (const key of ALLOWED_CV_FIELDS) {
+      if (key in req.body) {
+        updates[key] = req.body[key];
+      }
+    }
 
     const cv = await CV.findOneAndUpdate(
       {},
@@ -119,7 +131,7 @@ export async function uploadCVPdf(req: Request, res: Response): Promise<void> {
 
     // Persist PDF buffer in MongoDB Atlas so it survives Render dyno restarts
     try {
-      const fileBuffer = fs.readFileSync(file.path);
+      const fileBuffer = await fs.promises.readFile(file.path);
       await UploadedFile.findOneAndUpdate(
         { filename: file.filename },
         {

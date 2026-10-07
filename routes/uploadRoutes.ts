@@ -16,7 +16,7 @@ router.post('/admin/image', requireAdmin, uploadImage.single('image'), async (re
 
   try {
     // Persist file buffer in MongoDB Atlas so it survives Render dyno restarts
-    const fileBuffer = fs.readFileSync(req.file.path);
+    const fileBuffer = await fs.promises.readFile(req.file.path);
     await UploadedFile.findOneAndUpdate(
       { filename: req.file.filename },
       {
@@ -46,14 +46,14 @@ router.post('/admin/image', requireAdmin, uploadImage.single('image'), async (re
 // Public: Serve uploaded file directly (fallback endpoint)
 router.get('/file/:filename', async (req: Request, res: Response) => {
   try {
-    const { filename } = req.params;
-    const diskPath = path.resolve(process.cwd(), 'uploads', filename);
+    const sanitizedFilename = path.basename(req.params.filename);
+    const diskPath = path.resolve(process.cwd(), 'uploads', sanitizedFilename);
 
     if (fs.existsSync(diskPath)) {
       return res.sendFile(diskPath);
     }
 
-    const file = await UploadedFile.findOne({ filename });
+    const file = await UploadedFile.findOne({ filename: sanitizedFilename });
     if (file && file.data) {
       res.setHeader('Content-Type', file.mimetype);
       res.setHeader('Content-Length', file.size.toString());

@@ -14,7 +14,7 @@ const handlePdfUpload = (req: Request, res: Response, next: NextFunction) => {
   uploadPdf.single('pdf')(req, res, (err: any) => {
     if (err) {
       const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
-      const message = err.code === 'LIMIT_FILE_SIZE' ? 'PDF exceeds the 20MB size limit.' : err.message || 'Invalid PDF upload.';
+      const message = err.code === 'LIMIT_FILE_SIZE' ? 'PDF exceeds the 12MB size limit.' : err.message || 'Invalid PDF upload.';
       res.status(status).json({ success: false, message });
       return;
     }

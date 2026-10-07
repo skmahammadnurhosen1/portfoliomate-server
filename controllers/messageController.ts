@@ -18,6 +18,14 @@ export async function submitContactMessage(req: Request, res: Response): Promise
       return;
     }
 
+    if (firstName.length > 80 || (lastName && lastName.length > 80) || message.length > 4000) {
+      res.status(400).json({
+        success: false,
+        message: 'Message or name content exceeds maximum allowed length.',
+      });
+      return;
+    }
+
     const emailRegex = /^\S+@\S+\.\S+$/;
     if (!emailRegex.test(email.trim())) {
       res.status(400).json({
@@ -45,6 +53,10 @@ export async function submitContactMessage(req: Request, res: Response): Promise
         createdAt: new Date(),
       };
       inMemoryMessages.unshift(fallbackMessage);
+      // Cap in-memory queue to 50 to prevent unbounded memory growth
+      if (inMemoryMessages.length > 50) {
+        inMemoryMessages.pop();
+      }
 
       res.status(201).json({
         success: true,

@@ -39,6 +39,29 @@ export async function getPublicProjects(_req: Request, res: Response): Promise<v
   }
 }
 
+// Whitelist allowed fields to prevent Mass Assignment
+const ALLOWED_PROJECT_FIELDS = [
+  'title', 'subtitle', 'category', 'description', 'image', 'techStack',
+  'demoUrl', 'githubUrl', 'featured', 'year', 'role', 'status', 'rating',
+  'duration', 'rate', 'avatar', 'clientName', 'deliverables', 'designTools',
+  'behanceUrl', 'dimensions', 'hidden', 'order',
+];
+
+function filterAllowedProjectFields(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const key of ALLOWED_PROJECT_FIELDS) {
+    if (key in obj) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
+function getQueryById(id: string) {
+  const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+  return isValidObjectId ? { $or: [{ id }, { _id: id }] } : { id };
+}
+
 // Public: Get project by id / slug
 export async function getProjectById(req: Request, res: Response): Promise<void> {
   try {
@@ -53,9 +76,7 @@ export async function getProjectById(req: Request, res: Response): Promise<void>
       return;
     }
 
-    const project = await Project.findOne({
-      $or: [{ id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }],
-    }).lean();
+    const project = await Project.findOne(getQueryById(id)).lean();
 
     if (!project || (project.hidden && !(req as any).admin)) {
       res.status(404).json({ success: false, message: 'Project not found.' });
@@ -135,8 +156,10 @@ export async function createProject(req: Request, res: Response): Promise<void> 
       projectId = `${projectId}-${Math.random().toString(36).substring(2, 6)}`;
     }
 
+    const sanitizedData = filterAllowedProjectFields(data);
+
     const newProject = await Project.create({
-      ...data,
+      ...sanitizedData,
       id: projectId,
       featured: Boolean(data.featured),
       hidden: Boolean(data.hidden),
@@ -168,10 +191,10 @@ export async function updateProject(req: Request, res: Response): Promise<void> 
     }
 
     const { id } = req.params;
-    const updates = req.body;
+    const updates = filterAllowedProjectFields(req.body);
 
     const project = await Project.findOneAndUpdate(
-      { $or: [{ id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }] },
+      getQueryById(id),
       { $set: updates },
       { new: true, runValidators: true }
     );
@@ -208,9 +231,7 @@ export async function deleteProject(req: Request, res: Response): Promise<void> 
 
     const { id } = req.params;
 
-    const project = await Project.findOneAndDelete({
-      $or: [{ id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }],
-    });
+    const project = await Project.findOneAndDelete(getQueryById(id));
 
     if (!project) {
       res.status(404).json({ success: false, message: 'Project not found.' });
@@ -241,9 +262,7 @@ export async function toggleHideProject(req: Request, res: Response): Promise<vo
 
     const { id } = req.params;
 
-    const project = await Project.findOne({
-      $or: [{ id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }],
-    });
+    const project = await Project.findOne(getQueryById(id));
 
     if (!project) {
       res.status(404).json({ success: false, message: 'Project not found.' });

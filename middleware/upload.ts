@@ -22,22 +22,24 @@ const storage = multer.diskStorage({
   },
 });
 
-// Filter for image uploads
+// Filter for image uploads (Disallow raw SVG to prevent Stored XSS attacks)
 const imageFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only JPEG, PNG, WEBP, GIF, and SVG images are allowed.'));
+    cb(new Error('Only JPEG, PNG, WEBP, and GIF raster images are allowed.'));
   }
 };
 
 // Filter for CV PDF uploads
 const pdfFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
-  if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
+  const isPdfMime = file.mimetype === 'application/pdf';
+  const isPdfExt = file.originalname.toLowerCase().endsWith('.pdf');
+  if (isPdfMime && isPdfExt) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF files (.pdf) are allowed.'));
+    cb(new Error('Only valid PDF documents (.pdf) are allowed.'));
   }
 };
 
@@ -53,6 +55,6 @@ export const uploadPdf = multer({
   storage,
   fileFilter: pdfFilter,
   limits: {
-    fileSize: 20 * 1024 * 1024, // 20MB limit
+    fileSize: 12 * 1024 * 1024, // 12MB limit (Safe ceiling below MongoDB Atlas 16MB BSON limit)
   },
 });

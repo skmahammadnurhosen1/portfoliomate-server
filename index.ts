@@ -52,8 +52,10 @@ app.use(
       // Allow requests with no origin (e.g. mobile apps or curl) or matching origins
       if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         callback(null, true);
+      } else if (!isProduction) {
+        callback(null, true); // Permissive in local dev only
       } else {
-        callback(null, true); // Permissive in local dev, but credentials-friendly
+        callback(new Error(`CORS policy error: Origin ${origin} is not allowed.`));
       }
     },
     credentials: true,
