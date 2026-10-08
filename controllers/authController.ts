@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { Admin } from '../models/Admin.ts';
 import { AuthenticatedRequest } from '../middleware/auth.ts';
+import { ensureDbConnected } from '../config/db.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'noor_portfolio_super_secure_production_jwt_secret_key_2026!';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -22,7 +23,12 @@ export async function login(req: Request, res: Response): Promise<void> {
     const normalizedEmail = email.trim().toLowerCase();
     const isProduction = process.env.NODE_ENV === 'production';
 
-    // If MongoDB is not connected, use environment credentials in fallback mode
+    // Wait for database connection if currently connecting (Render cold start)
+    if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(12000);
+    }
+
+    // If MongoDB is STILL not connected after waiting, use environment credentials in fallback mode
     if (mongoose.connection.readyState !== 1) {
       const fallbackEmail = (process.env.ADMIN_EMAIL || 'admin@noor.dev').toLowerCase();
       const fallbackPass = process.env.ADMIN_INITIAL_PASSWORD || 'AdminSecurePass2026!';
@@ -185,6 +191,10 @@ export async function changePassword(req: AuthenticatedRequest, res: Response): 
         message: 'New password must be at least 8 characters long.',
       });
       return;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(12000);
     }
 
     if (mongoose.connection.readyState !== 1) {

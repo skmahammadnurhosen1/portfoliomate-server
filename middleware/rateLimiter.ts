@@ -3,7 +3,8 @@ import rateLimit from 'express-rate-limit';
 // Strict rate limit for admin authentication attempts (anti brute-force)
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login requests per windowMs
+  max: 20, // Limit each IP to 20 login requests per windowMs
+  skipSuccessfulRequests: true, // Do not count successful logins
   standardHeaders: true,
   legacyHeaders: false,
   message: {

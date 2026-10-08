@@ -125,6 +125,10 @@ export async function getAdminProjects(_req: Request, res: Response): Promise<vo
 export async function createProject(req: Request, res: Response): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(10000);
+    }
+
+    if (mongoose.connection.readyState !== 1) {
       res.status(503).json({
         success: false,
         message: 'Database connection is not available. Please verify MONGODB_URI in your .env file.',
@@ -183,6 +187,10 @@ export async function createProject(req: Request, res: Response): Promise<void> 
 export async function updateProject(req: Request, res: Response): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(10000);
+    }
+
+    if (mongoose.connection.readyState !== 1) {
       res.status(503).json({
         success: false,
         message: 'Database connection is not available. Please verify MONGODB_URI in your .env file.',
@@ -222,6 +230,10 @@ export async function updateProject(req: Request, res: Response): Promise<void> 
 export async function deleteProject(req: Request, res: Response): Promise<void> {
   try {
     if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(10000);
+    }
+
+    if (mongoose.connection.readyState !== 1) {
       res.status(503).json({
         success: false,
         message: 'Database connection is not available. Please verify MONGODB_URI in your .env file.',
@@ -252,6 +264,10 @@ export async function deleteProject(req: Request, res: Response): Promise<void> 
 // Admin: Toggle project hidden status
 export async function toggleHideProject(req: Request, res: Response): Promise<void> {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      await ensureDbConnected(10000);
+    }
+
     if (mongoose.connection.readyState !== 1) {
       res.status(503).json({
         success: false,

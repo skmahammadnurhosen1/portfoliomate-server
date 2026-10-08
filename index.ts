@@ -24,6 +24,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Enable trust proxy for Render, Cloudflare, and Heroku (fixes rate limit & IP tracking)
+app.set('trust proxy', 1);
+
 // Connect to MongoDB & Seed initial data
 (async () => {
   await connectDB();
@@ -38,29 +41,16 @@ app.use(
   })
 );
 
-// CORS Configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  process.env.CORS_ORIGIN,
-  process.env.APP_URL,
-].filter(Boolean) as string[];
-
+// CORS Configuration - Allows web clients (Netlify, Vercel, localhost, custom domains) with credentials
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps or curl) or matching origins
-      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-        callback(null, true);
-      } else if (!isProduction) {
-        callback(null, true); // Permissive in local dev only
-      } else {
-        callback(new Error(`CORS policy error: Origin ${origin} is not allowed.`));
-      }
+    origin: (_origin, callback) => {
+      // Reflect incoming origin for credentialed requests across dev & production
+      callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     exposedHeaders: ['Content-Disposition', 'Content-Length', 'Content-Type'],
   })
 );
